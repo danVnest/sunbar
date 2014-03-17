@@ -1,21 +1,29 @@
 #include "sunbar.h"
 
 int main(void) {
+	CLKPR = (1<<CLKPCE); CLKPR = 0x00; // set to F_CPU
 	initLEDs();
-	setLEDintensity(0x09ff, LEFT); // max of 0xFFFF
-	setLEDintensity(0x00ff, RIGHT); // max of 0xFFFF
+	initClock();
+	sei();
 	while (1) {
-		//
+		testLEDs();
 	}
 }
 
-/* Test
-Roll through each phase for 5 seconds
-- fade in
-- stay on (2s)
-- fade out
-- off (2s)
-- blink 5 times (fast in-on-out-off)
-*/
-void testLEDs() {
+void testLEDs(void) {
+	char start = seconds(); // TODO: implement overflow control
+	fadeLEDs(0x01FF, 2, LEFT);
+	fadeLEDs(0x01FF, 0.5, RIGHT);
+	while (seconds() < start + 1);
+	fadeLEDs(0, 0.5, RIGHT);
+	while (seconds() < start + 2);
+	fadeLEDs(0x01FF, 0.5, RIGHT);
+	while (seconds() < start + 3);
+	fadeLEDs(0, 2, LEFT);
+	fadeLEDs(0, 0.5, RIGHT);
+	while (seconds() < start + 4);
+	fadeLEDs(0x01FF, 0.5, RIGHT);
+	while (seconds() < start + 5);
+	fadeLEDs(0, 0.5, RIGHT);
+	while (seconds() < start + 6);
 }
