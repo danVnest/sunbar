@@ -11,19 +11,19 @@ int main(void) {
 }
 
 void testLEDs(void) {
-	char start = seconds(); // TODO: implement overflow control
-	fadeLEDs(0x01FF, 2, LEFT);
-	fadeLEDs(0x01FF, 0.5, RIGHT);
-	while (seconds() < start + 1);
+	float start = time();
+	fadeLEDs(0x3FFF, 2, LEFT);
+	fadeLEDs(0x3FFF, 0.5, RIGHT);
+	while (time() < start + 1);
 	fadeLEDs(0, 0.5, RIGHT);
-	while (seconds() < start + 2);
-	fadeLEDs(0x01FF, 0.5, RIGHT);
-	while (seconds() < start + 3);
+	while (time() < start + 2);
+	fadeLEDs(0x3FFF, 0.5, RIGHT);
+	while (time() < start + 3);
 	fadeLEDs(0, 2, LEFT);
 	fadeLEDs(0, 0.5, RIGHT);
-	while (seconds() < start + 4);
-	fadeLEDs(0x01FF, 0.5, RIGHT);
-	while (seconds() < start + 5);
+	while (time() < start + 4);
+	fadeLEDs(0x3FFF, 0.5, RIGHT);
+	while (time() < start + 5);
 	fadeLEDs(0, 0.5, RIGHT);
-	while (seconds() < start + 6);
+	while (time() < start + 6);
 }

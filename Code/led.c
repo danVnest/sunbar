@@ -43,21 +43,24 @@ void setLEDintensity(float intensity, char strip) {
 	// TODO: check intensity is appropriate value
 	// TODO: delinearise intensity
 	if (intensity == 0) { offLEDs(strip); return; } // -- as 0 is lowest intensity
+#define B 1000
+	// TODO: use lookup table (at least partially and use linear interpolation), or reduce computation expense another way
+	float lIntensity = 0xFFFF / (B - 1) * (powf(B, intensity/0xFFFF) - 1);
 	switch (strip) {
 		case BOTH: {
 				   TCCR1A |= (1<<COM1B1);
-				   OCR1B = intensity - 1;
+				   OCR1B = lIntensity;
 				   rightIntensity = intensity;
 			   }
 		case LEFT: {
 				   TCCR1A |= (1<<COM1A1);
-				   OCR1A = intensity - 1;
+				   OCR1A = lIntensity;
 				   leftIntensity = intensity;
 				   break;
 			   }
 		case RIGHT: {
 				    TCCR1A |= (1<<COM1B1);
-				    OCR1B = intensity - 1;
+				    OCR1B = lIntensity;
 				    rightIntensity = intensity;
 				    break;
 			    }
@@ -95,6 +98,7 @@ void fadeLEDs(float intensity, float duration, char strip) {
 }	
 
 ISR(TIMER1_OVF_vect) {
+	// TODO: reduce complexity in interrupt
 	if (leftStep != 0) {
 		float leftIntensityNew = leftIntensity + leftStep;
 		char leftIntensityIsHigh = (leftIntensityNew >= leftIntensityFinal);

@@ -3,6 +3,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <math.h>
 
 #define TOP 0xFFFF // maximum resolution for >200Hz
 #define T1_PRESCALE 1

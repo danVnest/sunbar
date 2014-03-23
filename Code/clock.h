@@ -6,10 +6,10 @@
 
 #define T0_PRESCALE 1024
 #define T0_TICS_PER_OVERFLOW 0x100 
-#define T0_TICS_PER_SEC (F_CPU / T0_PRESCALE)
-#define T0_OVERFLOWS_PER_SEC (T0_TICS_PER_SEC / T0_TICS_PER_OVERFLOW)
+#define T0_TICS_PER_SEC ((float)F_CPU / T0_PRESCALE)
+#define T0_SECS_PER_OVERFLOW ((float)T0_TICS_PER_OVERFLOW / T0_TICS_PER_SEC)
 
 void initClock(void);
-unsigned char seconds(void);
+float time(void);
 
 #endif
