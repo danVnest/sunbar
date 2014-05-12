@@ -40,10 +40,8 @@ void offLEDs(char strip) {
 }
 
 void setLEDintensity(float intensity, char strip) {
-	// TODO: check intensity is appropriate value
-	// TODO: delinearise intensity
-	if (intensity == 0) { offLEDs(strip); return; } // -- as 0 is lowest intensity
-#define B 1000
+	if (intensity == 0) { offLEDs(strip); return; }
+#define B 0xFFFF
 	// TODO: use lookup table (at least partially and use linear interpolation), or reduce computation expense another way
 	float lIntensity = 0xFFFF / (B - 1) * (powf(B, intensity/0xFFFF) - 1);
 	switch (strip) {
