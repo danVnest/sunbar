@@ -11,7 +11,7 @@
 #define T1_TICS_PER_SEC (F_CPU / T1_PRESCALE)
 #define T1_OVERFLOW_PER_SEC (T1_TICS_PER_SEC / T1_TICS_PER_OVERFLOW)
 
-enum STRIPS { LEFT, RIGHT, BOTH };
+enum SIDES { LEFT, RIGHT, BOTH, NONE };
 
 void initLEDs(void);
 void offLEDs(char strip);
