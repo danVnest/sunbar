@@ -1,6 +1,6 @@
 #include "sunbar.h"
 
-static volatile char buttons = NONE;
+static volatile char _buttons = NONE;
 
 int main(void) {
 	CLKPR = (1<<CLKPCE); CLKPR = 0x00; // set to F_CPU
@@ -15,6 +15,10 @@ int main(void) {
 	initLEDs();
 	initDisplay();
 	initClock();
+	DDRD |= (1<<PD6); 
+	PORTD |= (1<<INT0) | (1<<INT1);
+	EICRA |= (1<<ISC11) | (1<<ISC01);
+	EIMSK |= (1<<INT0) | (1<<INT1);
 	sei();
 	testLEDs();
 	while (1) {
@@ -22,6 +26,7 @@ int main(void) {
 		// Control Timeout - Update Settings 
 		if ((leftState == CONTROLLING) || (rightState == CONTROLLING)) {
 			if (currentTime >= controlTimeout) {
+				TOGGLE_U_LED;
 				offDisplay();
 				fadeLEDs(0, CONTROL_FADE, BOTH);
 				if (leftState == CONTROLLING) {
@@ -37,7 +42,9 @@ int main(void) {
 			else checkDisplay(currentTime);
 		}
 		// Button Control 
-		if (buttons != NONE) { // TODO: detect button presses (interrupt?) and probably debounce. PD0 and PD1 for buttons
+		char buttons = _buttons;
+		// TODO: change all chars to uint8_t
+		if (buttons != NONE) { // TODO: detect button hold
 			if (buttons == BOTH) {
 				leftAlarmTime = display(leftAlarmTime - currentTime);
 				rightAlarmTime = leftAlarmTime;
@@ -92,25 +99,27 @@ int main(void) {
 					rightState = CONTROLLING;
 				}
 			}
+			if (buttons == _buttons) _buttons = NONE;
 		}
 
 		// Rise and Alarm Triggers
-		if (time() >= leftRiseTime) {
+		if (currentTime >= leftRiseTime) {
+			TOGGLE_U_LED;
 			fadeLEDs(RISE_INTENSITY, RISE_DURATION, LEFT);
 			leftRiseTime += ONE_DAY;
 			leftState = RISING;
 		}
-		else if (time() >= leftAlarmTime) {
+		else if (currentTime >= leftAlarmTime) {
 			if ((alarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, LEFT);
 			else offLEDs(LEFT);
 			leftAlarmTime += 1;
 		}
-		if (time() >= rightRiseTime) {
+		if (currentTime >= rightRiseTime) {
 			fadeLEDs(RISE_INTENSITY, RISE_DURATION, RIGHT);
 			rightRiseTime += ONE_DAY;
 			rightState = RISING;
 		}
-		else if (time() >= rightAlarmTime) {
+		else if (currentTime >= rightAlarmTime) {
 			if (!(alarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, RIGHT);
 			else offLEDs(LEFT);
 			rightAlarmTime += 1;
@@ -134,4 +143,16 @@ void testLEDs(void) {
 	while (time() < start + 5);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 6);
+}
+
+ISR(INT0_vect) {
+	if (PORTD & (1<<INT1)) _buttons = LEFT;
+	else _buttons = BOTH;
+	TOGGLE_U_LED;
+}
+
+ISR(INT1_vect) {
+	if (PORTD & (1<<INT0)) _buttons = RIGHT;
+	else _buttons = BOTH;
+	TOGGLE_U_LED;
 }

@@ -31,6 +31,7 @@
 void initDisplay(void);
 void offDisplay(void);
 uint16_t display(float interval);
+void checkDisplay(float time);
 void testDisplay(void);
 
 #endif
