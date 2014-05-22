@@ -11,10 +11,12 @@
 #define RISE_INTENSITY		0xFFFF
 #define ALARM_INTENSITY		0xFFFF
 #define TEST_INTENSITY		0xFFFF
+#define HOLD_INTERVAL		0.25
 #define ONE_DAY			(24L*60L*60L)
 
 #define TOGGLE_U_LED		(PIND |= (1<<PD6))
 
 enum STATES { WAITING, RISING, CONTROLLING };
 
+uint8_t checkButtons(void);
 void testLEDs(void);

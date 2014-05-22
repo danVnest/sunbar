@@ -1,24 +1,20 @@
 #include "sunbar.h"
 
-static volatile char _buttons = NONE;
-
 int main(void) {
 	CLKPR = (1<<CLKPCE); CLKPR = 0x00; // set to F_CPU
-	float leftRiseTime = 7*60*60;
-	float rightRiseTime = leftRiseTime;
-	float leftAlarmTime = leftRiseTime + RISE_DURATION + ALARM_DELAY;
+	float leftAlarmTime = 7.5*60*60;
 	float rightAlarmTime = leftAlarmTime;
+	float leftRiseTime = leftAlarmTime - RISE_DURATION - ALARM_DELAY;
+	float rightRiseTime = leftRiseTime;
 	float controlTimeout = 0;
-	char leftState = WAITING;
-	char rightState = WAITING;
-	char alarmToggle = 1;
+	uint8_t leftState = WAITING;
+	uint8_t rightState = WAITING;
+	uint8_t alarmToggle = 1;
 	initLEDs();
 	initDisplay();
 	initClock();
 	DDRD |= (1<<PD6); 
 	PORTD |= (1<<INT0) | (1<<INT1);
-	EICRA |= (1<<ISC11) | (1<<ISC01);
-	EIMSK |= (1<<INT0) | (1<<INT1);
 	sei();
 	testLEDs();
 	while (1) {
@@ -26,25 +22,34 @@ int main(void) {
 		// Control Timeout - Update Settings 
 		if ((leftState == CONTROLLING) || (rightState == CONTROLLING)) {
 			if (currentTime >= controlTimeout) {
-				TOGGLE_U_LED;
-				offDisplay();
-				fadeLEDs(0, CONTROL_FADE, BOTH);
+				display(0);
 				if (leftState == CONTROLLING) {
 					leftRiseTime = leftAlarmTime - RISE_DURATION - ALARM_DELAY;
-					leftState = WAITING;
+					if (currentTime < leftRiseTime) leftState = WAITING;
+					else {
+						leftState = RISING;
+						leftRiseTime += ONE_DAY;
+					}
+					fadeLEDs(0, CONTROL_FADE, LEFT);
 				}
 				if (rightState == CONTROLLING) {
 					if (leftState == CONTROLLING) rightRiseTime = leftRiseTime;
 					else rightRiseTime = rightAlarmTime - RISE_DURATION - ALARM_DELAY;
-					rightState = WAITING;
+					if (currentTime < rightRiseTime) rightState = WAITING;
+					else {
+						rightState = RISING;
+						rightRiseTime += ONE_DAY;
+					}
+					fadeLEDs(0, CONTROL_FADE, RIGHT);
 				}
 			}
 			else checkDisplay(currentTime);
 		}
 		// Button Control 
-		char buttons = _buttons;
 		// TODO: change all chars to uint8_t
-		if (buttons != NONE) { // TODO: detect button hold
+		// TODO: make a bool_t type
+		uint8_t buttons = checkButtons();
+		if (buttons != NONE) {
 			if (buttons == BOTH) {
 				leftAlarmTime = display(leftAlarmTime - currentTime);
 				rightAlarmTime = leftAlarmTime;
@@ -77,6 +82,7 @@ int main(void) {
 			else if (buttons == LEFT) {
 				if (leftState == RISING) {
 					fadeLEDs(0, WAKE_FADE, LEFT);
+					leftAlarmTime = leftRiseTime + RISE_DURATION + ALARM_DELAY;
 					leftState = WAITING;
 				}
 				else {
@@ -90,6 +96,7 @@ int main(void) {
 			else {
 				if (rightState == RISING) {
 					fadeLEDs(0, WAKE_FADE, RIGHT);
+					rightAlarmTime = rightRiseTime + RISE_DURATION + ALARM_DELAY;
 					rightState = WAITING; // TODO: or snooze?
 				}
 				else {
@@ -99,12 +106,10 @@ int main(void) {
 					rightState = CONTROLLING;
 				}
 			}
-			if (buttons == _buttons) _buttons = NONE;
 		}
 
 		// Rise and Alarm Triggers
 		if (currentTime >= leftRiseTime) {
-			TOGGLE_U_LED;
 			fadeLEDs(RISE_INTENSITY, RISE_DURATION, LEFT);
 			leftRiseTime += ONE_DAY;
 			leftState = RISING;
@@ -113,6 +118,7 @@ int main(void) {
 			if ((alarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, LEFT);
 			else offLEDs(LEFT);
 			leftAlarmTime += 1;
+			// TODO: maybe random toggling would be more effective?
 		}
 		if (currentTime >= rightRiseTime) {
 			fadeLEDs(RISE_INTENSITY, RISE_DURATION, RIGHT);
@@ -121,45 +127,71 @@ int main(void) {
 		}
 		else if (currentTime >= rightAlarmTime) {
 			if (!(alarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, RIGHT);
-			else offLEDs(LEFT);
+			else offLEDs(RIGHT);
 			rightAlarmTime += 1;
 		}
 	}
 }
 
+uint8_t checkButtons(void) {
+	static uint16_t leftFilter = 0, rightFilter = 0;
+	static uint8_t buttons[2] = {0};
+	static float holdTime = 0;
+	uint8_t edges = NONE;
+	leftFilter = (leftFilter << 1) | ((PIND >> INT0) & 1);
+	rightFilter = (rightFilter << 1) | ((PIND >> INT1) & 1);
+	if ((leftFilter | 0xE000) == 0xF000) {
+		edges = LEFT;
+		buttons[LEFT] = 1;
+	}
+	else if ((leftFilter & 0x1FFF) == 0x0FFF) {
+		TOGGLE_U_LED;
+		buttons[LEFT] = 0;
+	}
+	if ((rightFilter | 0xE000) == 0xF000) {
+		edges = RIGHT;
+		buttons[RIGHT] = 1;
+	}
+	else if ((rightFilter & 0x1FFF) == 0x0FFF) {
+		TOGGLE_U_LED;
+		buttons[RIGHT] = 0;
+	}
+	if (edges != NONE) {
+		TOGGLE_U_LED;
+		holdTime = time() + HOLD_INTERVAL;
+		if ((buttons[LEFT] & buttons[RIGHT]) != 0) return BOTH;
+	}
+	else if ((buttons[LEFT] | buttons[RIGHT]) != 0) {
+		if (time() >= holdTime) {
+			if (buttons[LEFT] != 0) edges = LEFT;
+			else edges = RIGHT;
+			holdTime = time() + HOLD_INTERVAL;
+		}
+	}
+	return edges;
+}
+
 void testLEDs(void) {
 	float start = time();
-	display(5L*60*60);
+	display(1L*60*60);
 	fadeLEDs(TEST_INTENSITY, 2, LEFT);
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 1);
-	display(10L*60*60);
+	display(2L*60*60);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 2);
-	display(8L*60*60);
+	display(3L*60*60);
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 3);
-	display(6L*60*60);
+	display(5L*60*60);
 	fadeLEDs(0, 2, LEFT);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 4);
-	display(4L*60*60);
+	display(7L*60*60);
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 5);
-	display(2L*60*60);
+	display(10L*60*60);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 6);
 	display(0);
-}
-
-ISR(INT0_vect) {
-	if (PORTD & (1<<INT1)) _buttons = LEFT;
-	else _buttons = BOTH;
-	TOGGLE_U_LED;
-}
-
-ISR(INT1_vect) {
-	if (PORTD & (1<<INT0)) _buttons = RIGHT;
-	else _buttons = BOTH;
-	TOGGLE_U_LED;
 }

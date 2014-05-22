@@ -19,6 +19,7 @@ uint16_t display(float interval) {
 	ledsOn = displayUnits / DISPLAY_FLASH_RES; 
 	nextToggle = displayUnits % DISPLAY_FLASH_RES;
 	if (nextToggle == 0) flashState = 0;
+	if (flashState != 0) nextToggle = DISPLAY_FLASH_RES - nextToggle;
 	updateDisplay();
 	return displayUnits * DISPLAY_TIME_RES;
 }
@@ -44,8 +45,8 @@ void checkDisplay(float time) {
 	static float nextTime = 0;
 	if ((nextToggle != 0) && (time >= nextTime)) {
 		if (++delta > nextToggle) {
-			flashState ^= 1;
 			updateDisplay();
+			flashState ^= 1;
 			delta = 0;
 			nextToggle = DISPLAY_FLASH_RES - nextToggle;
 		}
