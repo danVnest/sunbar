@@ -129,20 +129,27 @@ int main(void) {
 
 void testLEDs(void) {
 	float start = time();
+	display(5L*60*60);
 	fadeLEDs(TEST_INTENSITY, 2, LEFT);
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 1);
+	display(10L*60*60);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 2);
+	display(8L*60*60);
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 3);
+	display(6L*60*60);
 	fadeLEDs(0, 2, LEFT);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 4);
+	display(4L*60*60);
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 5);
+	display(2L*60*60);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 6);
+	display(0);
 }
 
 ISR(INT0_vect) {

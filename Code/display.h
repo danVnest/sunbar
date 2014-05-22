@@ -5,7 +5,7 @@
 
 #define DISPLAY_LEDS		10
 #define DISPLAY_FLASH_RES	4
-#define DISPLAY_FLASH_PERIOD	1 // second
+#define DISPLAY_FLASH_TIME	0.25
 #define DISPLAY_TIME_PER_LED	(60L * 60L)
 #define DISPLAY_TIME_RES	(DISPLAY_TIME_PER_LED / DISPLAY_FLASH_RES)
 #define DISPLAY_TIME_MAX	(DISPLAY_LEDS * DISPLAY_TIME_PER_LED)
@@ -31,7 +31,7 @@
 void initDisplay(void);
 void offDisplay(void);
 uint16_t display(float interval);
+void updateDisplay(void);
 void checkDisplay(float time);
-void testDisplay(void);
 
 #endif
