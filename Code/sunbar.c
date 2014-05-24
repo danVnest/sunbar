@@ -44,6 +44,7 @@ int main(void) {
 					fadeLEDs(0, CONTROL_FADE, RIGHT);
 				}
 				display(0);
+				displayUpdateTime = currentTime;
 			}
 			else checkDisplay(currentTime);
 		}
@@ -51,23 +52,23 @@ int main(void) {
 		uint8_t buttons = checkButtons();
 		if (buttons != NONE) {
 			if (buttons == BOTH) {
-				if (rightState == CONTROLLING) leftAlarmTime = display(rightAlarmTime - currentTime);
-				else leftAlarmTime = display(leftAlarmTime - currentTime);
+				if (rightState == CONTROLLING) leftAlarmTime = display(rightAlarmTime - currentTime) + currentTime;
+				else leftAlarmTime = display(leftAlarmTime - currentTime) + currentTime;
 				fadeLEDs(CONTROL_INTENSITY, CONTROL_FADE, BOTH);
 				leftState = CONTROLLING;
 				rightState = CONTROLLING;
 				controlTimeout = currentTime + CONTROL_DURATION;
 			}
 			else if (leftState == CONTROLLING) {
-				if (buttons == LEFT) { if (leftAlarmTime - DISPLAY_TIME_RES > currentTime) leftAlarmTime -= DISPLAY_TIME_RES; }
+				if (buttons == LEFT) { if (leftAlarmTime - 1.5*DISPLAY_TIME_RES > currentTime) leftAlarmTime -= DISPLAY_TIME_RES; }
 				else if (leftAlarmTime + DISPLAY_TIME_RES <= currentTime + DISPLAY_TIME_MAX) leftAlarmTime += DISPLAY_TIME_RES;
-				leftAlarmTime = display(leftAlarmTime - currentTime);
+				leftAlarmTime = display(leftAlarmTime - currentTime) + currentTime;
 				controlTimeout = currentTime + CONTROL_DURATION;
 			}
 			else if (rightState == CONTROLLING) {
-				if (buttons == LEFT) { if (rightAlarmTime - DISPLAY_TIME_RES > currentTime) rightAlarmTime -= DISPLAY_TIME_RES; }
+				if (buttons == LEFT) { if (rightAlarmTime - 1.5*DISPLAY_TIME_RES > currentTime) rightAlarmTime -= DISPLAY_TIME_RES; }
 				else if (rightAlarmTime + DISPLAY_TIME_RES <= currentTime + DISPLAY_TIME_MAX) rightAlarmTime += DISPLAY_TIME_RES;
-				rightAlarmTime = display(rightAlarmTime - currentTime);
+				rightAlarmTime = display(rightAlarmTime - currentTime) + currentTime;
 				controlTimeout = currentTime + CONTROL_DURATION;
 			}
 			else if (buttons == LEFT) {
@@ -76,6 +77,7 @@ int main(void) {
 					leftRiseTime += ONE_DAY;
 					leftAlarmTime += ONE_DAY;
 					leftState = WAITING;
+					displayUpdateTime = currentTime;
 				}
 				else { // leftState == WAITING
 					// TODO: detect ambient light
@@ -92,6 +94,7 @@ int main(void) {
 					rightRiseTime += ONE_DAY;
 					rightAlarmTime += ONE_DAY;
 					rightState = WAITING; // TODO: or snooze?
+					displayUpdateTime = currentTime;
 				}
 				else { // rightState == WAITING
 					if (rightAlarmTime > currentTime + DISPLAY_TIME_MAX) rightAlarmTime = currentTime + DEFAULT_ALARM_TIME;
@@ -116,8 +119,8 @@ int main(void) {
 				// TODO: maybe random toggling would be more effective?
 			}
 			else if ((currentTime >= displayUpdateTime) && (leftAlarmTime <= rightAlarmTime)) {
-				display((leftAlarmTime - currentTime) * DISPLAY_RISE_ZOOM);
-				displayUpdateTime += DISPLAY_TIME_PER_LED / DISPLAY_RISE_ZOOM;
+				display((leftAlarmTime - currentTime) * DISPLAY_RISE_ZOOM + DISPLAY_TIME_RES);
+				displayUpdateTime = currentTime + DISPLAY_TIME_PER_LED / DISPLAY_RISE_ZOOM;
 			}
 		}
 		if ((rightState == WAITING) && (currentTime >= rightRiseTime)) {
@@ -132,8 +135,8 @@ int main(void) {
 				rightAlarmTime += 1;
 			}
 			else if (currentTime >= displayUpdateTime) {
-				display((rightAlarmTime - currentTime) * DISPLAY_RISE_ZOOM);
-				displayUpdateTime += DISPLAY_TIME_PER_LED / DISPLAY_RISE_ZOOM;
+				display((rightAlarmTime - currentTime) * DISPLAY_RISE_ZOOM + DISPLAY_TIME_RES);
+				displayUpdateTime = currentTime + DISPLAY_TIME_PER_LED / DISPLAY_RISE_ZOOM;
 			}
 		}
 	}
