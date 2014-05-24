@@ -3,7 +3,7 @@
 #include "clock.h"
 
 #define RISE_DURATION		(30*60)
-#define ALARM_DELAY		(30*60)
+#define ALARM_DELAY		(15*60)
 #define WAKE_FADE		30
 #define CONTROL_DURATION	10
 #define CONTROL_FADE		1
@@ -13,6 +13,8 @@
 #define TEST_INTENSITY		0xFFFF
 #define HOLD_INTERVAL		0.25
 #define ONE_DAY			(24L*60L*60L)
+#define DEFAULT_ALARM_TIME 	(7.5*60L*60L)
+#define DISPLAY_RISE_ZOOM	13
 
 #define TOGGLE_U_LED		(PIND |= (1<<PD6))
 

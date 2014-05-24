@@ -14,8 +14,8 @@
 enum SIDES { LEFT, RIGHT, BOTH, NONE };
 
 void initLEDs(void);
-void offLEDs(char strip);
-void setLEDintensity(float intensity, char strip);
-void fadeLEDs(float intensity, float duration, char strip);
+void offLEDs(uint8_t strip);
+void setLEDintensity(float intensity, uint8_t strip);
+void fadeLEDs(float intensity, float duration, uint8_t strip);
 
 #endif

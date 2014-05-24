@@ -2,14 +2,16 @@
 
 int main(void) {
 	CLKPR = (1<<CLKPCE); CLKPR = 0x00; // set to F_CPU
-	float leftAlarmTime = 7.5*60*60;
+	float leftAlarmTime = DEFAULT_ALARM_TIME;
 	float rightAlarmTime = leftAlarmTime;
 	float leftRiseTime = leftAlarmTime - RISE_DURATION - ALARM_DELAY;
 	float rightRiseTime = leftRiseTime;
+	float displayUpdateTime = 0;
 	float controlTimeout = 0;
 	uint8_t leftState = WAITING;
 	uint8_t rightState = WAITING;
-	uint8_t alarmToggle = 1;
+	uint8_t leftAlarmToggle = 1;
+	uint8_t rightAlarmToggle = 1;
 	initLEDs();
 	initDisplay();
 	initClock();
@@ -22,113 +24,117 @@ int main(void) {
 		// Control Timeout - Update Settings 
 		if ((leftState == CONTROLLING) || (rightState == CONTROLLING)) {
 			if (currentTime >= controlTimeout) {
-				display(0);
 				if (leftState == CONTROLLING) {
 					leftRiseTime = leftAlarmTime - RISE_DURATION - ALARM_DELAY;
 					if (currentTime < leftRiseTime) leftState = WAITING;
 					else {
-						leftState = RISING;
 						leftRiseTime += ONE_DAY;
+						leftState = RISING;
 					}
+					if (rightState == CONTROLLING) rightAlarmTime = leftAlarmTime;
 					fadeLEDs(0, CONTROL_FADE, LEFT);
 				}
 				if (rightState == CONTROLLING) {
-					if (leftState == CONTROLLING) rightRiseTime = leftRiseTime;
-					else rightRiseTime = rightAlarmTime - RISE_DURATION - ALARM_DELAY;
+					rightRiseTime = rightAlarmTime - RISE_DURATION - ALARM_DELAY;
 					if (currentTime < rightRiseTime) rightState = WAITING;
 					else {
-						rightState = RISING;
 						rightRiseTime += ONE_DAY;
+						rightState = RISING;
 					}
 					fadeLEDs(0, CONTROL_FADE, RIGHT);
 				}
+				display(0);
 			}
 			else checkDisplay(currentTime);
 		}
 		// Button Control 
-		// TODO: change all chars to uint8_t
-		// TODO: make a bool_t type
 		uint8_t buttons = checkButtons();
 		if (buttons != NONE) {
 			if (buttons == BOTH) {
-				leftAlarmTime = display(leftAlarmTime - currentTime);
-				rightAlarmTime = leftAlarmTime;
+				if (rightState == CONTROLLING) leftAlarmTime = display(rightAlarmTime - currentTime);
+				else leftAlarmTime = display(leftAlarmTime - currentTime);
 				fadeLEDs(CONTROL_INTENSITY, CONTROL_FADE, BOTH);
-				controlTimeout = currentTime + CONTROL_DURATION;
 				leftState = CONTROLLING;
 				rightState = CONTROLLING;
+				controlTimeout = currentTime + CONTROL_DURATION;
 			}
-			else if (leftState == CONTROLLING || rightState == CONTROLLING) {
-				if (leftState == CONTROLLING) {
-					if (buttons == LEFT) {
-						if (leftAlarmTime - DISPLAY_TIME_RES > currentTime) leftAlarmTime -= DISPLAY_TIME_RES;
-					}
-					else {
-						if (leftAlarmTime + DISPLAY_TIME_RES <= currentTime + DISPLAY_TIME_MAX) leftAlarmTime += DISPLAY_TIME_RES;
-					}
-					leftAlarmTime = display(leftAlarmTime - currentTime);
-				}
-				else {
-					if (buttons == LEFT) {
-						if (rightAlarmTime - DISPLAY_TIME_RES > currentTime) rightAlarmTime -= DISPLAY_TIME_RES;
-					}
-					else {
-						if (rightAlarmTime + DISPLAY_TIME_RES <= currentTime + DISPLAY_TIME_MAX) rightAlarmTime += DISPLAY_TIME_RES;
-					}
-					rightAlarmTime = display(rightAlarmTime - currentTime);
-				}
+			else if (leftState == CONTROLLING) {
+				if (buttons == LEFT) { if (leftAlarmTime - DISPLAY_TIME_RES > currentTime) leftAlarmTime -= DISPLAY_TIME_RES; }
+				else if (leftAlarmTime + DISPLAY_TIME_RES <= currentTime + DISPLAY_TIME_MAX) leftAlarmTime += DISPLAY_TIME_RES;
+				leftAlarmTime = display(leftAlarmTime - currentTime);
+				controlTimeout = currentTime + CONTROL_DURATION;
+			}
+			else if (rightState == CONTROLLING) {
+				if (buttons == LEFT) { if (rightAlarmTime - DISPLAY_TIME_RES > currentTime) rightAlarmTime -= DISPLAY_TIME_RES; }
+				else if (rightAlarmTime + DISPLAY_TIME_RES <= currentTime + DISPLAY_TIME_MAX) rightAlarmTime += DISPLAY_TIME_RES;
+				rightAlarmTime = display(rightAlarmTime - currentTime);
 				controlTimeout = currentTime + CONTROL_DURATION;
 			}
 			else if (buttons == LEFT) {
 				if (leftState == RISING) {
 					fadeLEDs(0, WAKE_FADE, LEFT);
-					leftAlarmTime = leftRiseTime + RISE_DURATION + ALARM_DELAY;
+					leftRiseTime += ONE_DAY;
+					leftAlarmTime += ONE_DAY;
 					leftState = WAITING;
 				}
-				else {
+				else { // leftState == WAITING
 					// TODO: detect ambient light
+					if (leftAlarmTime > currentTime + DISPLAY_TIME_MAX) leftAlarmTime = currentTime + DEFAULT_ALARM_TIME;
 					display(leftAlarmTime - currentTime);
 					fadeLEDs(CONTROL_INTENSITY, CONTROL_FADE, LEFT);
-					controlTimeout = currentTime + CONTROL_DURATION;
 					leftState = CONTROLLING;
+					controlTimeout = currentTime + CONTROL_DURATION;
 				}
 			}
-			else {
+			else { // buttons == RIGHT
 				if (rightState == RISING) {
 					fadeLEDs(0, WAKE_FADE, RIGHT);
-					rightAlarmTime = rightRiseTime + RISE_DURATION + ALARM_DELAY;
+					rightRiseTime += ONE_DAY;
+					rightAlarmTime += ONE_DAY;
 					rightState = WAITING; // TODO: or snooze?
 				}
-				else {
+				else { // rightState == WAITING
+					if (rightAlarmTime > currentTime + DISPLAY_TIME_MAX) rightAlarmTime = currentTime + DEFAULT_ALARM_TIME;
 					display(rightAlarmTime - currentTime);
 					fadeLEDs(CONTROL_INTENSITY, CONTROL_FADE, RIGHT);
-					controlTimeout = currentTime + CONTROL_DURATION;
 					rightState = CONTROLLING;
+					controlTimeout = currentTime + CONTROL_DURATION;
 				}
 			}
 		}
-
 		// Rise and Alarm Triggers
-		if (currentTime >= leftRiseTime) {
+		if ((leftState == WAITING) && (currentTime >= leftRiseTime)) {
 			fadeLEDs(RISE_INTENSITY, RISE_DURATION, LEFT);
 			leftRiseTime += ONE_DAY;
 			leftState = RISING;
 		}
-		else if (currentTime >= leftAlarmTime) {
-			if ((alarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, LEFT);
-			else offLEDs(LEFT);
-			leftAlarmTime += 1;
-			// TODO: maybe random toggling would be more effective?
+		else if (leftState == RISING) {
+			if (currentTime >= leftAlarmTime) {
+				if ((rightAlarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, LEFT);
+				else offLEDs(LEFT);
+				leftAlarmTime += 1;
+				// TODO: maybe random toggling would be more effective?
+			}
+			else if ((currentTime >= displayUpdateTime) && (leftAlarmTime <= rightAlarmTime)) {
+				display((leftAlarmTime - currentTime) * DISPLAY_RISE_ZOOM);
+				displayUpdateTime += DISPLAY_TIME_PER_LED / DISPLAY_RISE_ZOOM;
+			}
 		}
-		if (currentTime >= rightRiseTime) {
+		if ((rightState == WAITING) && (currentTime >= rightRiseTime)) {
 			fadeLEDs(RISE_INTENSITY, RISE_DURATION, RIGHT);
 			rightRiseTime += ONE_DAY;
 			rightState = RISING;
 		}
-		else if (currentTime >= rightAlarmTime) {
-			if (!(alarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, RIGHT);
-			else offLEDs(RIGHT);
-			rightAlarmTime += 1;
+		else if (rightState == RISING) {
+			if (currentTime >= rightAlarmTime) {
+				if ((leftAlarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, RIGHT);
+				else offLEDs(RIGHT);
+				rightAlarmTime += 1;
+			}
+			else if (currentTime >= displayUpdateTime) {
+				display((rightAlarmTime - currentTime) * DISPLAY_RISE_ZOOM);
+				displayUpdateTime += DISPLAY_TIME_PER_LED / DISPLAY_RISE_ZOOM;
+			}
 		}
 	}
 }

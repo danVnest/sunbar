@@ -1,7 +1,7 @@
 #include "led.h"
 
 static volatile float leftStep = 0, rightStep = 0, leftIntensity = 0, rightIntensity = 0, leftIntensityFinal = 0, rightIntensityFinal = 0;
-static volatile char leftStepIsPositive, rightStepIsPositive;
+static volatile uint8_t leftStepIsPositive, rightStepIsPositive;
 
 void initLEDs(void) {
 	// PWM SETUP
@@ -17,7 +17,7 @@ void initLEDs(void) {
 	TIMSK1 |= (1<<TOIE1);
 }
 
-void offLEDs(char strip) {
+void offLEDs(uint8_t strip) {
 	switch (strip) {
 		case LEFT: {
 				   TCCR1A &= ~(1<<COM1A1);
@@ -39,7 +39,7 @@ void offLEDs(char strip) {
 	}
 }
 
-void setLEDintensity(float intensity, char strip) {
+void setLEDintensity(float intensity, uint8_t strip) {
 	if (intensity == 0) { offLEDs(strip); return; }
 #define B 0xFFFF
 	// TODO: use lookup table (at least partially and use linear interpolation), or reduce computation expense another way
@@ -66,7 +66,7 @@ void setLEDintensity(float intensity, char strip) {
 	}
 }
 
-void fadeLEDs(float intensity, float duration, char strip) {
+void fadeLEDs(float intensity, float duration, uint8_t strip) {
 	// if (duration > MAX_FADE_DURATION) return; // TODO: error;
 	float overflows = duration * T1_OVERFLOW_PER_SEC;
 	if (overflows < 1) { setLEDintensity(intensity, strip); return; }
@@ -99,7 +99,7 @@ ISR(TIMER1_OVF_vect) {
 	// TODO: reduce complexity in interrupt
 	if (leftStep != 0) {
 		float leftIntensityNew = leftIntensity + leftStep;
-		char leftIntensityIsHigh = (leftIntensityNew >= leftIntensityFinal);
+		uint8_t leftIntensityIsHigh = (leftIntensityNew >= leftIntensityFinal);
 		if (!(leftStepIsPositive ^ leftIntensityIsHigh)) {
 			leftStep = 0;
 			leftIntensityNew = leftIntensityFinal;
@@ -108,7 +108,7 @@ ISR(TIMER1_OVF_vect) {
 	}
 	if (rightStep != 0) {
 		float rightIntensityNew = rightIntensity + rightStep;
-		char rightIntensityIsHigh = (rightIntensityNew >= rightIntensityFinal);
+		uint8_t rightIntensityIsHigh = (rightIntensityNew >= rightIntensityFinal);
 		if (!(rightStepIsPositive ^ rightIntensityIsHigh)) {
 			rightStep = 0;
 			rightIntensityNew = rightIntensityFinal;
