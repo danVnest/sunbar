@@ -48,6 +48,7 @@ TARGET = sunbar
 SRC =	$(TARGET).c \
 	led.c \
 	display.c \
+	speaker.c \
 	clock.c
 
 # MCU name, you MUST set this to match the board you are using

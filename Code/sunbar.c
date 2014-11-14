@@ -13,11 +13,12 @@ int main(void) {
 	uint8_t rightAlarmToggle = 1;
 	initLEDs();
 	initDisplay();
+	//initSpeaker();
 	initClock();
 	DDRD |= (1<<PD6); 
-	PORTD |= (1<<INT0) | (1<<INT1);
+	PORTD |= (1<<PD0) | (1<<PD1);
 	sei();
-	testLEDs();
+	test();
 	while (1) {
 		float currentTime = time();
 		// Control Timeout - Update Settings 
@@ -50,6 +51,10 @@ int main(void) {
 		uint8_t buttons = checkButtons();
 		if (buttons != NONE) {
 			if (buttons == BOTH) {
+				if (leftAlarmTime > currentTime + DISPLAY_TIME_MAX) {
+					if (leftAlarmTime > currentTime + ONE_DAY + SNOOZE_TIMEOUT) leftAlarmTime = currentTime + DEFAULT_ALARM_TIME;
+					else leftAlarmTime = currentTime + SNOOZE_DURATION;
+				}
 				if (rightState == CONTROLLING) leftAlarmTime = display(rightAlarmTime - currentTime) + currentTime;
 				else leftAlarmTime = display(leftAlarmTime - currentTime) + currentTime;
 				fadeLEDs(CONTROL_INTENSITY, CONTROL_FADE, BOTH);
@@ -79,8 +84,8 @@ int main(void) {
 				else { // leftState == WAITING
 					// TODO: detect ambient light
 					if (leftAlarmTime > currentTime + DISPLAY_TIME_MAX) {
-						if (leftAlarmTime - ONE_DAY + SNOOZE_TIMEOUT <= currentTime) leftAlarmTime = currentTime + SNOOZE_DURATION;
-						else leftAlarmTime = currentTime + DEFAULT_ALARM_TIME;
+						if (leftAlarmTime > currentTime + ONE_DAY + SNOOZE_TIMEOUT) leftAlarmTime = currentTime + DEFAULT_ALARM_TIME;
+						else leftAlarmTime = currentTime + SNOOZE_DURATION;
 					}
 					display(leftAlarmTime - currentTime);
 					fadeLEDs(CONTROL_INTENSITY, CONTROL_FADE, LEFT);
@@ -93,12 +98,12 @@ int main(void) {
 					fadeLEDs(0, WAKE_FADE, RIGHT);
 					rightRiseTime += ONE_DAY;
 					rightAlarmTime += ONE_DAY;
-					rightState = WAITING; // TODO: or snooze?
+					rightState = WAITING;
 				}
 				else { // rightState == WAITING
 					if (rightAlarmTime > currentTime + DISPLAY_TIME_MAX) {
-						if (rightAlarmTime - ONE_DAY + SNOOZE_TIMEOUT <= currentTime) rightAlarmTime = currentTime + SNOOZE_DURATION;
-						else rightAlarmTime = currentTime + DEFAULT_ALARM_TIME;
+						if (rightAlarmTime > currentTime + ONE_DAY + SNOOZE_TIMEOUT) rightAlarmTime = currentTime + DEFAULT_ALARM_TIME;
+						else rightAlarmTime = currentTime + SNOOZE_DURATION;
 					}
 					display(rightAlarmTime - currentTime);
 					fadeLEDs(CONTROL_INTENSITY, CONTROL_FADE, RIGHT);
@@ -116,8 +121,7 @@ int main(void) {
 		else if ((leftState == RISING) && (currentTime >= leftAlarmTime)) {
 			if ((rightAlarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, LEFT);
 			else offLEDs(LEFT);
-			leftAlarmTime += 1;
-			// TODO: maybe random toggling would be more effective?
+			leftAlarmTime += ((float)rand() / RAND_MAX)*2 + 0.5;
 		}
 		if ((rightState == WAITING) && (currentTime >= rightRiseTime)) {
 			fadeLEDs(RISE_INTENSITY, RISE_DURATION, RIGHT);
@@ -127,7 +131,7 @@ int main(void) {
 		else if ((rightState == RISING) && (currentTime >= rightAlarmTime)) {
 			if ((leftAlarmToggle ^= 1)) setLEDintensity(ALARM_INTENSITY, RIGHT);
 			else offLEDs(RIGHT);
-			rightAlarmTime += 1;
+			rightAlarmTime += ((float)rand() / RAND_MAX)*2 + 0.5;
 		}
 	}
 }
@@ -139,19 +143,19 @@ uint8_t checkButtons(void) {
 	uint8_t edges = NONE;
 	leftFilter = (leftFilter << 1) | ((PIND >> INT0) & 1);
 	rightFilter = (rightFilter << 1) | ((PIND >> INT1) & 1);
-	if ((leftFilter | 0xE000) == 0xF000) {
+	if (IS_BUTTON_ON(leftFilter)) {
 		edges = LEFT;
 		buttons[LEFT] = 1;
 	}
-	else if ((leftFilter & 0x1FFF) == 0x0FFF) {
+	else if (IS_BUTTON_OFF(leftFilter)) {
 		TOGGLE_U_LED;
 		buttons[LEFT] = 0;
 	}
-	if ((rightFilter | 0xE000) == 0xF000) {
+	if (IS_BUTTON_ON(rightFilter)) {
 		edges = RIGHT;
 		buttons[RIGHT] = 1;
 	}
-	else if ((rightFilter & 0x1FFF) == 0x0FFF) {
+	else if (IS_BUTTON_OFF(rightFilter)) {
 		TOGGLE_U_LED;
 		buttons[RIGHT] = 0;
 	}
@@ -170,27 +174,33 @@ uint8_t checkButtons(void) {
 	return edges;
 }
 
-void testLEDs(void) {
+void test(void) {
 	float start = time();
 	display(1L*60*60);
 	fadeLEDs(TEST_INTENSITY, 2, LEFT);
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 1);
 	display(2L*60*60);
+	//soundAlarm();
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 2);
 	display(3L*60*60);
+	//offSpeaker();
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 3);
 	display(5L*60*60);
+	//soundAlarm();
 	fadeLEDs(0, 2, LEFT);
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 4);
 	display(7L*60*60);
+	//offSpeaker();
 	fadeLEDs(TEST_INTENSITY, 0.5, RIGHT);
 	while (time() < start + 5);
 	display(10L*60*60);
+	//soundAlarm();
 	fadeLEDs(0, 0.5, RIGHT);
 	while (time() < start + 6);
 	display(0);
+	//offSpeaker();
 }

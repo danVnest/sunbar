@@ -5,11 +5,11 @@
 #include <avr/interrupt.h>
 #include <math.h>
 
-#define TOP 0xFFFF // maximum resolution for >200Hz
+#define T1_TOP 0xFFFF // maximum resolution for >200Hz
 #define T1_PRESCALE 1
 #define T1_TICS_PER_OVERFLOW 0x10000
-#define T1_TICS_PER_SEC (F_CPU / T1_PRESCALE)
-#define T1_OVERFLOW_PER_SEC (T1_TICS_PER_SEC / T1_TICS_PER_OVERFLOW)
+#define T1_TICS_PER_SEC ((float)F_CPU / T1_PRESCALE)
+#define T1_OVERFLOW_PER_SEC ((float)T1_TICS_PER_SEC / T1_TICS_PER_OVERFLOW)
 
 enum SIDES { LEFT, RIGHT, BOTH, NONE };
 

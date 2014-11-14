@@ -10,23 +10,24 @@
 #define DISPLAY_TIME_RES	(DISPLAY_TIME_PER_LED / DISPLAY_FLASH_RES)
 #define DISPLAY_TIME_MAX	(DISPLAY_LEDS * DISPLAY_TIME_PER_LED)
 
-#define LEDL PORTB
+#define LEDL PORTF
 #define LEDLT PINF
-#define LEDLD DDRB
-#define LED0 PB0
-#define LED1 PB1
-#define LED2 PB2
-#define LED3 PB3
-#define LED4 PB7
+#define LEDLD DDRF
+#define LED0 PF0
+#define LED1 PF1
+#define LED2 PF4
+#define LED3 PF5
+#define LED4 PF6
 
-#define LEDH PORTF
+#define LEDH PORTB
 #define LEDHT PINF
-#define LEDHD DDRF
-#define LED5 PF0
-#define LED6 PF1
-#define LED7 PF4
-#define LED8 PF5
-#define LED9 PF6
+#define LEDHD DDRB
+#define LED5 PB0
+#define LED6 PB1
+#define LED7 PB2
+#define LED8 PB3
+#define LED9 PB7
+
 
 void initDisplay(void);
 void offDisplay(void);

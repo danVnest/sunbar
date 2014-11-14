@@ -13,19 +13,19 @@ void initLEDs(void) {
 	DDRB |= (1<<PB5) | (1<<PB6);
 	TCCR1A = (1<<WGM11); 
 	TCCR1B = (1<<WGM12) | (1<<WGM13) | (1<<CS10);
-	ICR1 = TOP; 
-	TIMSK1 |= (1<<TOIE1);
+	ICR1 = T1_TOP; 
+	TIMSK1 = (1<<TOIE1);
 }
 
 void offLEDs(uint8_t strip) {
 	switch (strip) {
 		case LEFT: {
-				   TCCR1A &= ~(1<<COM1A1);
+				   TCCR1A &= ~(1<<COM1B1);
 				   leftIntensity = 0;
 				   break;
 			   }
 		case RIGHT: {
-				    TCCR1A &= ~(1<<COM1B1);
+				    TCCR1A &= ~(1<<COM1A1);
 				    rightIntensity = 0;
 				    break;
 			    }
@@ -46,19 +46,19 @@ void setLEDintensity(float intensity, uint8_t strip) {
 	float lIntensity = 0xFFFF / (B - 1) * (powf(B, intensity/0xFFFF) - 1);
 	switch (strip) {
 		case BOTH: {
-				   TCCR1A |= (1<<COM1B1);
-				   OCR1B = lIntensity;
+				   TCCR1A |= (1<<COM1A1);
+				   OCR1A = lIntensity;
 				   rightIntensity = intensity;
 			   }
 		case LEFT: {
-				   TCCR1A |= (1<<COM1A1);
-				   OCR1A = lIntensity;
+				   TCCR1A |= (1<<COM1B1);
+				   OCR1B = lIntensity;
 				   leftIntensity = intensity;
 				   break;
 			   }
 		case RIGHT: {
-				    TCCR1A |= (1<<COM1B1);
-				    OCR1B = lIntensity;
+				    TCCR1A |= (1<<COM1A1);
+				    OCR1A = lIntensity;
 				    rightIntensity = intensity;
 				    break;
 			    }
